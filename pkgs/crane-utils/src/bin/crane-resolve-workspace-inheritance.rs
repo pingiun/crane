@@ -487,4 +487,518 @@ mod tests {
 
         assert_eq!(expected_toml_str, cargo_toml.to_string());
     }
+
+    #[test]
+    fn sqlx_workspace() {
+        let mut cargo_toml = toml_edit::Document::from_str(
+            r#"
+            [package]
+            name = "sqlx-mysql"
+            documentation = "https://docs.rs/sqlx"
+            description = "MySQL driver implementation for SQLx. Not for direct use; see the `sqlx` crate for details."
+            version.workspace = true
+            license.workspace = true
+            edition.workspace = true
+            authors.workspace = true
+            repository.workspace = true
+            # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+            [features]
+            json = ["sqlx-core/json", "serde"]
+            any = ["sqlx-core/any"]
+            offline = ["sqlx-core/offline", "serde/derive"]
+            migrate = ["sqlx-core/migrate"]
+            _rt-tokio = ["sqlx-core/_rt-tokio", "tokio"]
+
+            [dependencies]
+            sqlx-core = { workspace = true }
+
+            # Support for tokio::io::AsyncWrite in mysql::infile
+            tokio = { workspace = true, optional = true }
+
+            # Futures crates
+            futures-channel = { version = "0.3.19", default-features = false, features = ["sink", "alloc", "std"] }
+            futures-core = { version = "0.3.19", default-features = false }
+            futures-io = "0.3.24"
+            futures-util = { version = "0.3.19", default-features = false, features = ["alloc", "sink", "io"] }
+
+            # Cryptographic Primitives
+            crc = "3.0.0"
+            digest = { version = "0.10.0", default-features = false, features = ["std"] }
+            hkdf = "0.12.0"
+            hmac = { version = "0.12.0", default-features = false }
+            md-5 = { version = "0.10.0", default-features = false }
+            rand = { version = "0.8.4", default-features = false, features = ["std", "std_rng"] }
+            rsa = "0.9"
+            sha1 = { version = "0.10.1", default-features = false }
+            sha2 = { version = "0.10.0", default-features = false }
+
+            # Type Integrations (versions inherited from `[workspace.dependencies]`)
+            bigdecimal = { workspace = true, optional = true }
+            chrono = { workspace = true, optional = true }
+            rust_decimal = { workspace = true, optional = true }
+            time = { workspace = true, optional = true }
+            uuid = { workspace = true, optional = true }
+
+            # Misc
+            atoi = "2.0"
+            base64 = { version = "0.21.0", default-features = false, features = ["std"] }
+            bitflags = { version = "2", default-features = false, features = ["serde"] }
+            byteorder = { version = "1.4.3", default-features = false, features = ["std"] }
+            bytes = "1.1.0"
+            dotenvy = "0.15.5"
+            either = "1.6.1"
+            generic-array = { version = "0.14.4", default-features = false }
+            hex = "0.4.3"
+            itoa = "1.0.1"
+            log = "0.4.17"
+            memchr = { version = "2.4.1", default-features = false }
+            once_cell = "1.9.0"
+            percent-encoding = "2.1.0"
+            smallvec = "1.7.0"
+            stringprep = "0.1.2"
+            thiserror = "1.0.35"
+            tracing = { version = "0.1.37", features = ["log"] }
+            whoami = { version = "1.2.1", default-features = false }
+
+            serde = { version = "1.0.144", optional = true }"
+            "#,
+        ).unwrap();
+
+        let root_toml = toml_edit::Document::from_str(
+            r#"
+            [workspace]
+            members = [
+                ".",
+                "sqlx-core",
+                "sqlx-macros",
+                "sqlx-macros-core",
+                "sqlx-test",
+                "sqlx-cli",
+            #    "sqlx-bench",
+                "sqlx-mysql",
+                "sqlx-postgres",
+                "sqlx-sqlite",
+                "examples/mysql/todos",
+                "examples/postgres/axum-social-with-tests",
+                "examples/postgres/chat",
+                "examples/postgres/files",
+                "examples/postgres/json",
+                "examples/postgres/listen",
+                "examples/postgres/todos",
+                "examples/postgres/mockable-todos",
+                "examples/postgres/transaction",
+                "examples/sqlite/todos",
+            ]
+
+            [workspace.package]
+            version = "0.7.3"
+            license = "MIT OR Apache-2.0"
+            edition = "2021"
+            repository = "https://github.com/launchbadge/sqlx"
+            keywords = ["database", "async", "postgres", "mysql", "sqlite"]
+            categories = ["database", "asynchronous"]
+            authors = [
+                "Ryan Leckey <leckey.ryan@gmail.com>",
+                "Austin Bonander <austin.bonander@gmail.com>",
+                "Chloe Ross <orangesnowfox@gmail.com>",
+                "Daniel Akhterov <akhterovd@gmail.com>",
+            ]
+
+            [package]
+            name = "sqlx"
+            readme = "README.md"
+            documentation = "https://docs.rs/sqlx"
+            description = "🧰 The Rust SQL Toolkit. An async, pure Rust SQL crate featuring compile-time checked queries without a DSL. Supports PostgreSQL, MySQL, and SQLite."
+            version.workspace = true
+            license.workspace = true
+            edition.workspace = true
+            authors.workspace = true
+            repository.workspace = true
+
+            [package.metadata.docs.rs]
+            features = ["all-databases", "_unstable-all-types"]
+            rustdoc-args = ["--cfg", "docsrs"]
+
+            [features]
+            default = ["any", "macros", "migrate", "json"]
+            macros = ["sqlx-macros"]
+            migrate = ["sqlx-core/migrate", "sqlx-macros?/migrate", "sqlx-mysql?/migrate", "sqlx-postgres?/migrate", "sqlx-sqlite?/migrate"]
+
+            # intended mainly for CI and docs
+            all-databases = ["mysql", "sqlite", "postgres", "any"]
+            _unstable-all-types = [
+                "bigdecimal",
+                "rust_decimal",
+                "json",
+                "time",
+                "chrono",
+                "ipnetwork",
+                "mac_address",
+                "uuid",
+                "bit-vec",
+            ]
+
+            # Base runtime features without TLS
+            runtime-async-std = ["_rt-async-std", "sqlx-core/_rt-async-std", "sqlx-macros?/_rt-async-std"]
+            runtime-tokio = ["_rt-tokio", "sqlx-core/_rt-tokio", "sqlx-mysql/_rt-tokio", "sqlx-macros?/_rt-tokio"]
+
+            # TLS features
+            tls-native-tls = ["sqlx-core/_tls-native-tls", "sqlx-macros?/_tls-native-tls"]
+            tls-rustls = ["sqlx-core/_tls-rustls", "sqlx-macros?/_tls-rustls"]
+
+            # No-op feature used by the workflows to compile without TLS enabled. Not meant for general use.
+            tls-none = []
+
+            # Legacy Runtime + TLS features
+
+            runtime-async-std-native-tls = ["runtime-async-std", "tls-native-tls"]
+            runtime-async-std-rustls = ["runtime-async-std", "tls-rustls"]
+
+            runtime-tokio-native-tls = ["runtime-tokio", "tls-native-tls"]
+            runtime-tokio-rustls = ["runtime-tokio", "tls-rustls"]
+
+            # for conditional compilation
+            _rt-async-std = []
+            _rt-tokio = []
+
+            # database
+            any = ["sqlx-core/any", "sqlx-mysql?/any", "sqlx-postgres?/any", "sqlx-sqlite?/any"]
+            postgres = ["sqlx-postgres", "sqlx-macros?/postgres"]
+            mysql = ["sqlx-mysql", "sqlx-macros?/mysql"]
+            sqlite = ["sqlx-sqlite", "sqlx-macros?/sqlite"]
+
+            # types
+            json = ["sqlx-macros?/json", "sqlx-mysql?/json", "sqlx-postgres?/json", "sqlx-sqlite?/json"]
+
+            bigdecimal = ["sqlx-core/bigdecimal", "sqlx-macros?/bigdecimal", "sqlx-mysql?/bigdecimal", "sqlx-postgres?/bigdecimal"]
+            bit-vec = ["sqlx-core/bit-vec", "sqlx-macros?/bit-vec", "sqlx-postgres?/bit-vec"]
+            chrono = ["sqlx-core/chrono", "sqlx-macros?/chrono", "sqlx-mysql?/chrono", "sqlx-postgres?/chrono", "sqlx-sqlite?/chrono"]
+            ipnetwork = ["sqlx-core/ipnetwork", "sqlx-macros?/ipnetwork", "sqlx-postgres?/ipnetwork"]
+            mac_address = ["sqlx-core/mac_address", "sqlx-macros?/mac_address", "sqlx-postgres?/mac_address"]
+            rust_decimal = ["sqlx-core/rust_decimal", "sqlx-macros?/rust_decimal", "sqlx-mysql?/rust_decimal", "sqlx-postgres?/rust_decimal"]
+            time = ["sqlx-core/time", "sqlx-macros?/time", "sqlx-mysql?/time", "sqlx-postgres?/time", "sqlx-sqlite?/time"]
+            uuid = ["sqlx-core/uuid", "sqlx-macros?/uuid", "sqlx-mysql?/uuid", "sqlx-postgres?/uuid", "sqlx-sqlite?/uuid"]
+            regexp = ["sqlx-sqlite?/regexp"]
+
+            [workspace.dependencies]
+            # Core Crates
+            sqlx-core = { version = "=0.7.3", path = "sqlx-core" }
+            sqlx-macros-core = { version = "=0.7.3", path = "sqlx-macros-core" }
+            sqlx-macros = { version = "=0.7.3", path = "sqlx-macros" }
+
+            # Driver crates
+            sqlx-mysql = { version = "=0.7.3", path = "sqlx-mysql" }
+            sqlx-postgres = { version = "=0.7.3", path = "sqlx-postgres" }
+            sqlx-sqlite = { version = "=0.7.3", path = "sqlx-sqlite" }
+
+            # Facade crate (for reference from sqlx-cli)
+            sqlx = { version = "=0.7.3", path = ".", default-features = false }
+
+            # Common type integrations shared by multiple driver crates.
+            # These are optional unless enabled in a workspace crate.
+            bigdecimal = "0.3.0"
+            bit-vec = "0.6.3"
+            chrono = { version = "0.4.22", default-features = false }
+            ipnetwork = "0.20.0"
+            mac_address = "1.1.5"
+            rust_decimal = "1.26.1"
+            time = { version = "0.3.14", features = ["formatting", "parsing", "macros"] }
+            uuid = "1.1.2"
+
+            # Common utility crates
+            dotenvy = { version = "0.15.0", default-features = false }
+
+            # Runtimes
+            [workspace.dependencies.async-std]
+            version = "1.12"
+
+            [workspace.dependencies.tokio]
+            version = "1"
+            features = ["time", "net", "sync", "fs", "io-util", "rt"]
+            default-features = false
+
+            [dependencies]
+            sqlx-core = { workspace = true, features = ["offline", "migrate"] }
+            sqlx-macros = { workspace = true, optional = true }
+
+            sqlx-mysql = { workspace = true, optional = true }
+            sqlx-postgres = { workspace = true, optional = true }
+            sqlx-sqlite = { workspace = true, optional = true }
+
+            [dev-dependencies]
+            anyhow = "1.0.52"
+            time_ = { version = "0.3.2", package = "time" }
+            futures = "0.3.19"
+            env_logger = "0.11"
+            async-std = { version = "1.12.0", features = ["attributes"] }
+            tokio = { version = "1.15.0", features = ["full"] }
+            dotenvy = "0.15.0"
+            trybuild = "1.0.53"
+            sqlx-test = { path = "./sqlx-test" }
+            paste = "1.0.6"
+            serde = { version = "1.0.132", features = ["derive"] }
+            serde_json = "1.0.73"
+            url = "2.2.2"
+            rand = "0.8.4"
+            rand_xoshiro = "0.6.0"
+            hex = "0.4.3"
+            tempfile = "3.9.0"
+            criterion = { version = "0.5.1", features = ["async_tokio"] }
+
+            # Needed to test SQLCipher
+            libsqlite3-sys = { version = "0.27", features = ["bundled-sqlcipher"] }
+
+            #
+            # Any
+            #
+
+            [[test]]
+            name = "any"
+            path = "tests/any/any.rs"
+            required-features = ["any"]
+
+            [[test]]
+            name = "any-pool"
+            path = "tests/any/pool.rs"
+            required-features = ["any"]
+
+            #
+            # Migrations
+            #
+
+            [[test]]
+            name = "migrate-macro"
+            path = "tests/migrate/macro.rs"
+            required-features = ["macros", "migrate"]
+
+            #
+            # SQLite
+            #
+
+            [[test]]
+            name = "sqlite"
+            path = "tests/sqlite/sqlite.rs"
+            required-features = ["sqlite"]
+
+            [[test]]
+            name = "sqlite-any"
+            path = "tests/sqlite/any.rs"
+            required-features = ["sqlite"]
+
+            [[test]]
+            name = "sqlite-types"
+            path = "tests/sqlite/types.rs"
+            required-features = ["sqlite"]
+
+            [[test]]
+            name = "sqlite-describe"
+            path = "tests/sqlite/describe.rs"
+            required-features = ["sqlite"]
+
+            [[test]]
+            name = "sqlite-macros"
+            path = "tests/sqlite/macros.rs"
+            required-features = ["sqlite", "macros"]
+
+            [[test]]
+            name = "sqlite-derives"
+            path = "tests/sqlite/derives.rs"
+            required-features = ["sqlite", "macros"]
+
+            [[test]]
+            name = "sqlite-error"
+            path = "tests/sqlite/error.rs"
+            required-features = ["sqlite"]
+
+            [[test]]
+            name = "sqlite-sqlcipher"
+            path = "tests/sqlite/sqlcipher.rs"
+            required-features = ["sqlite"]
+
+            [[test]]
+            name = "sqlite-test-attr"
+            path = "tests/sqlite/test-attr.rs"
+            required-features = ["sqlite", "macros", "migrate"]
+
+            [[test]]
+            name = "sqlite-migrate"
+            path = "tests/sqlite/migrate.rs"
+            required-features = ["sqlite", "macros", "migrate"]
+
+            [[bench]]
+            name = "sqlite-describe"
+            path = "benches/sqlite/describe.rs"
+            harness = false
+            required-features = ["sqlite"]
+
+            #
+            # MySQL
+            #
+
+            [[test]]
+            name = "mysql"
+            path = "tests/mysql/mysql.rs"
+            required-features = ["mysql"]
+
+            [[test]]
+            name = "mysql-types"
+            path = "tests/mysql/types.rs"
+            required-features = ["mysql"]
+
+            [[test]]
+            name = "mysql-describe"
+            path = "tests/mysql/describe.rs"
+            required-features = ["mysql"]
+
+            [[test]]
+            name = "mysql-macros"
+            path = "tests/mysql/macros.rs"
+            required-features = ["mysql", "macros"]
+
+            [[test]]
+            name = "mysql-error"
+            path = "tests/mysql/error.rs"
+            required-features = ["mysql"]
+
+            [[test]]
+            name = "mysql-test-attr"
+            path = "tests/mysql/test-attr.rs"
+            required-features = ["mysql", "macros", "migrate"]
+
+            [[test]]
+            name = "mysql-migrate"
+            path = "tests/mysql/migrate.rs"
+            required-features = ["mysql", "macros", "migrate"]
+
+            #
+            # PostgreSQL
+            #
+
+            [[test]]
+            name = "postgres"
+            path = "tests/postgres/postgres.rs"
+            required-features = ["postgres"]
+
+            [[test]]
+            name = "postgres-types"
+            path = "tests/postgres/types.rs"
+            required-features = ["postgres"]
+
+            [[test]]
+            name = "postgres-describe"
+            path = "tests/postgres/describe.rs"
+            required-features = ["postgres"]
+
+            [[test]]
+            name = "postgres-macros"
+            path = "tests/postgres/macros.rs"
+            required-features = ["postgres", "macros"]
+
+            [[test]]
+            name = "postgres-derives"
+            path = "tests/postgres/derives.rs"
+            required-features = ["postgres", "macros"]
+
+            [[test]]
+            name = "postgres-error"
+            path = "tests/postgres/error.rs"
+            required-features = ["postgres"]
+
+            [[test]]
+            name = "postgres-test-attr"
+            path = "tests/postgres/test-attr.rs"
+            required-features = ["postgres", "macros", "migrate"]
+
+            [[test]]
+            name = "postgres-migrate"
+            path = "tests/postgres/migrate.rs"
+            required-features = ["postgres", "macros", "migrate"]
+        "#).unwrap();
+
+        let expected_toml_str = r#"
+            [package]
+            name = "sqlx-mysql"
+            documentation = "https://docs.rs/sqlx"
+            description = "MySQL driver implementation for SQLx. Not for direct use; see the `sqlx` crate for details."
+            version.workspace = true
+            license.workspace = true
+            edition.workspace = true
+            authors.workspace = true
+            repository.workspace = true
+            # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+            [features]
+            json = ["sqlx-core/json", "serde"]
+            any = ["sqlx-core/any"]
+            offline = ["sqlx-core/offline", "serde/derive"]
+            migrate = ["sqlx-core/migrate"]
+            _rt-tokio = ["sqlx-core/_rt-tokio", "tokio"]
+
+            [dependencies]
+            sqlx-core = { version = "=0.7.3", path = "sqlx-core" }
+
+            # Support for tokio::io::AsyncWrite in mysql::infile
+            tokio = { workspace = true, optional = true }
+
+            # Futures crates
+            futures-channel = { version = "0.3.19", default-features = false, features = ["sink", "alloc", "std"] }
+            futures-core = { version = "0.3.19", default-features = false }
+            futures-io = "0.3.24"
+            futures-util = { version = "0.3.19", default-features = false, features = ["alloc", "sink", "io"] }
+
+            # Cryptographic Primitives
+            crc = "3.0.0"
+            digest = { version = "0.10.0", default-features = false, features = ["std"] }
+            hkdf = "0.12.0"
+            hmac = { version = "0.12.0", default-features = false }
+            md-5 = { version = "0.10.0", default-features = false }
+            rand = { version = "0.8.4", default-features = false, features = ["std", "std_rng"] }
+            rsa = "0.9"
+            sha1 = { version = "0.10.1", default-features = false }
+            sha2 = { version = "0.10.0", default-features = false }
+
+            # Type Integrations (versions inherited from `[workspace.dependencies]`)
+            bigdecimal = { version = "0.3.0", optional = true }
+            chrono = { version = "0.4.22", default-features = false , optional = true }
+            rust_decimal = { version = "1.26.1", optional = true }
+            time = { version = "0.3.14", features = ["formatting", "parsing", "macros"] , optional = true }
+            uuid = { version = "1.1.2", optional = true }
+
+            # Misc
+            atoi = "2.0"
+            base64 = { version = "0.21.0", default-features = false, features = ["std"] }
+            bitflags = { version = "2", default-features = false, features = ["serde"] }
+            byteorder = { version = "1.4.3", default-features = false, features = ["std"] }
+            bytes = "1.1.0"
+            dotenvy = "0.15.5"
+            either = "1.6.1"
+            generic-array = { version = "0.14.4", default-features = false }
+            hex = "0.4.3"
+            itoa = "1.0.1"
+            log = "0.4.17"
+            memchr = { version = "2.4.1", default-features = false }
+            once_cell = "1.9.0"
+            percent-encoding = "2.1.0"
+            smallvec = "1.7.0"
+            stringprep = "0.1.2"
+            thiserror = "1.0.35"
+            tracing = { version = "0.1.37", features = ["log"] }
+            whoami = { version = "1.2.1", default-features = false }
+
+            serde = { version = "1.0.144", optional = true }
+
+
+            [dependencies.tokio]
+            # Support for tokio::io::AsyncWrite in mysql::infile
+            version = "1"
+            features = ["time", "net", "sync", "fs", "io-util", "rt"]
+            default-features = false
+            optional = true
+        "#;
+
+        super::merge(&mut cargo_toml, &root_toml);
+
+        assert_eq!(expected_toml_str, cargo_toml.to_string());
+    }
 }
